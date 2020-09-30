@@ -19,6 +19,8 @@ interface ProductDao {
     @Query("SELECT *  FROM products WHERE reference= :ref")
     fun findProducts(ref: String): LiveData<List<Product>>
 
+    @Query("SELECT *  FROM products")
+    fun getAllProducts(): LiveData<List<Product>>
 
     @Query("DELETE FROM products")
     suspend fun deleteAll()
