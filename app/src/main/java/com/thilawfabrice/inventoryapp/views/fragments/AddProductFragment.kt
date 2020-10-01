@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import com.thilawfabrice.inventoryapp.R
 
+
 /**
  * A simple [Fragment] subclass as the second destination in the navigation.
  */
@@ -17,7 +18,11 @@ class AddProductFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_add_product, container, false)
+        val view =
+            inflater.inflate(R.layout.fragment_add_product, container, false)
+        return view
     }
+
+
 
 }

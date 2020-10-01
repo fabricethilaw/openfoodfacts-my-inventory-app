@@ -32,6 +32,12 @@ android {
     }
 }
 
+
+repositories {
+    // Depending on AndroidX Snapshot Builds to get the latest CameraX libs.
+    maven { url 'https://androidx.dev/snapshots/builds/6787662/artifacts/repository/' }
+}
+
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
@@ -77,4 +83,16 @@ dependencies {
 
     // JODA TIME
     implementation 'joda-time:joda-time:2.10.6'
+
+    // Use MLKit machine learning model to read barcodes
+    implementation 'com.google.mlkit:barcode-scanning:16.0.3'
+
+    // CameraX
+    implementation "androidx.camera:camera-camera2:1.0.0-SNAPSHOT"
+    implementation "androidx.camera:camera-lifecycle:1.0.0-SNAPSHOT"
+    implementation "androidx.camera:camera-view:1.0.0-SNAPSHOT"
+
+    // Barcode scanning library for Android, using ZXing for decoding.
+    implementation('com.journeyapps:zxing-android-embedded:4.1.0') { transitive = false }
+    implementation 'com.google.zxing:core:3.4.0'
 }

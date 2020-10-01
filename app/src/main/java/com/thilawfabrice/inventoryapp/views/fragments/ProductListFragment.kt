@@ -1,5 +1,6 @@
 package com.thilawfabrice.inventoryapp.views.fragments
 
+import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -9,30 +10,37 @@ import android.view.View.GONE
 import android.view.View.VISIBLE
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
+import com.afollestad.assent.Permission
+import com.afollestad.assent.runWithPermissions
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.zxing.integration.android.IntentIntegrator
 import com.thilawfabrice.inventoryapp.R
 import com.thilawfabrice.inventoryapp.getApp
 import com.thilawfabrice.inventoryapp.viewmodels.ProductViewModel
 import com.thilawfabrice.inventoryapp.viewmodels.ProductViewModel.Companion.FACTORY
+import com.thilawfabrice.inventoryapp.views.BarcodeScanner
 import com.thilawfabrice.inventoryapp.views.ProductViewItem
 import com.thilawfabrice.inventoryapp.views.adapters.AdapterItemList
 import kotlinx.coroutines.launch
+
 
 /**
  * A simple [Fragment] subclass as the default destination in the navigation.
  */
 class ProductListFragment : Fragment() {
+    private val barcodeManager by lazy { BarcodeScanner(this) }
+
 
     private val vmFactory: ViewModelProvider.NewInstanceFactory by lazy {
         FACTORY(
             requireActivity().getApp().repository,
-            ""
+            "" // replace this value to provide the model with any relevant data you wish at initialization step
         )
     }
     private val viewModel: ProductViewModel by viewModels { vmFactory }
@@ -60,10 +68,21 @@ class ProductListFragment : Fragment() {
         val emptyListTextView = view.findViewById<TextView>(R.id.emptyList)
         listView.adapter = adapterView
 
+
         view.findViewById<FloatingActionButton>(R.id.btnAddProduct).setOnClickListener {
-            findNavController().navigate(R.id.action_ProductListFragment_to_AddProductFragment)
+            showScanner()
         }
         return Pair(listView, emptyListTextView)
+    }
+
+    private fun showScanner() {
+        runWithPermissions(Permission.CAMERA) {
+            barcodeManager.startScanning()
+        }
+    }
+
+    private fun resolveScannedProductReference(reference: String) {
+        viewModel.checkReference(reference)
     }
 
     private fun observeAvailableProductList(
@@ -101,6 +120,22 @@ class ProductListFragment : Fragment() {
             }
 
             adapterView.update(data)
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        val result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data)
+        if (result != null) {
+            if (result.contents == null) {
+                Toast.makeText(requireContext(), "Scanning is cancelled", Toast.LENGTH_LONG).show()
+            } else {
+                val barcode: String = result.contents
+                resolveScannedProductReference(barcode)
+            }
+        } else {
+            Toast.makeText(requireContext(), "No result", Toast.LENGTH_LONG)
+                .show()
+            super.onActivityResult(requestCode, resultCode, data)
         }
     }
 }

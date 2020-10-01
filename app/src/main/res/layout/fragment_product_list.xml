@@ -39,9 +39,9 @@
         android:layout_marginBottom="@dimen/normal_spacing"
         android:clickable="true"
         android:focusable="true"
-        android:src="@android:drawable/ic_media_play"
+        android:src="@drawable/ic_add"
+        android:tint="@android:color/white"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
-
 
 </androidx.constraintlayout.widget.ConstraintLayout>
