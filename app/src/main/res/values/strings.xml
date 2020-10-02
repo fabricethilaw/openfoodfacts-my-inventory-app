@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Inventory App</string>
+    <string name="app_name">Food Inventory</string>
     <string name="no_product">No product in store</string>
     <string name="product_list_fragment_label">product_list_fragment_label</string>
     <string name="add_product_fragment_label">add_product_fragment_label</string>
