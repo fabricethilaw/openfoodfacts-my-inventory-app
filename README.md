@@ -1,5 +1,7 @@
 # openfoodfacts-my-inventory-app
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/361cffa0a5bd4dfc90583735da28fe28)](https://app.codacy.com/gh/fabricethilaw/openfoodfacts-my-inventory-app?utm_source=github.com&utm_medium=referral&utm_content=fabricethilaw/openfoodfacts-my-inventory-app&utm_campaign=Badge_Grade)
+
 # Inventory App that store a list of food products references with their corresponding expiring date.
 
 ## Bugs and feature requests
