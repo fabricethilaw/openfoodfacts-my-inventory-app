@@ -23,6 +23,4 @@ class AddProductFragment : Fragment() {
         return view
     }
 
-
-
 }

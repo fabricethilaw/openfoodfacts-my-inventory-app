@@ -18,15 +18,20 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import com.afollestad.assent.Permission
 import com.afollestad.assent.runWithPermissions
+import com.afollestad.materialdialogs.MaterialDialog
+import com.afollestad.materialdialogs.customview.customView
+import com.afollestad.materialdialogs.datetime.dateTimePicker
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.zxing.integration.android.IntentIntegrator
 import com.thilawfabrice.inventoryapp.R
 import com.thilawfabrice.inventoryapp.getApp
+import com.thilawfabrice.inventoryapp.repository.api.FoodDetails
 import com.thilawfabrice.inventoryapp.viewmodels.ProductViewModel
 import com.thilawfabrice.inventoryapp.viewmodels.ProductViewModel.Companion.FACTORY
 import com.thilawfabrice.inventoryapp.views.BarcodeScanner
 import com.thilawfabrice.inventoryapp.views.ProductViewItem
 import com.thilawfabrice.inventoryapp.views.adapters.AdapterItemList
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 
@@ -68,22 +73,12 @@ class ProductListFragment : Fragment() {
         val emptyListTextView = view.findViewById<TextView>(R.id.emptyList)
         listView.adapter = adapterView
 
-
         view.findViewById<FloatingActionButton>(R.id.btnAddProduct).setOnClickListener {
             showScanner()
         }
         return Pair(listView, emptyListTextView)
     }
 
-    private fun showScanner() {
-        runWithPermissions(Permission.CAMERA) {
-            barcodeManager.startScanning()
-        }
-    }
-
-    private fun resolveScannedProductReference(reference: String) {
-        viewModel.checkReference(reference)
-    }
 
     private fun observeAvailableProductList(
         listView: RecyclerView,
@@ -95,13 +90,17 @@ class ProductListFragment : Fragment() {
 
                 if (this.hasActiveObservers().not()) {
                     observeForever {
-                        displayProductList(it.toSet(), listView, adapterView, emptyListTextView)
+                        displayProductList(
+                            it.toSet(),
+                            listView,
+                            adapterView,
+                            emptyListTextView
+                        )
                     }
                 }
             }
         }
     }
-
 
     private fun displayProductList(
         data: Set<ProductViewItem>,
@@ -123,6 +122,76 @@ class ProductListFragment : Fragment() {
         }
     }
 
+    private fun showScanner() {
+        runWithPermissions(Permission.CAMERA) {
+            barcodeManager.startScanning()
+            // Go to onActivityResult to get scan result.
+        }
+    }
+
+    private fun handleScanResult(barcode: String) {
+        val loaderAnimation = MaterialDialog(requireContext()).show {
+            title(R.string.food_check)
+            cancelable(false)
+            customView(R.layout.loader_dialog)
+        }
+
+        checkScannedBarcodeOnline(barcode) { scanResult ->
+            // hide loader
+            Handler(Looper.getMainLooper()).post {
+                loaderAnimation.dismiss()
+            }
+
+            if (scanResult != null) {
+                letUserSetExpiryDate()
+            } else {
+                tellUserThatProductNotFound()
+            }
+        }
+    }
+
+
+    private fun checkScannedBarcodeOnline(barcode: String, resultObserver: (FoodDetails?) -> Unit) {
+
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
+            try {
+                viewModel.checkReferenceOnline(barcode).observeForever(resultObserver)
+            } catch (e: Exception) {
+
+                MaterialDialog(requireContext()).show {
+                    title(R.string.food_check)
+                    message(R.string.unable_to_check_code)
+                    positiveButton(R.string.ok) {
+                        it.dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun letUserSetExpiryDate() {
+
+        MaterialDialog(requireContext()).show {
+            title(R.string.product_expiry_date)
+            dateTimePicker(requireFutureDateTime = true) { _, dateTime ->
+                // Use dateTime (Calendar)
+
+            }
+        }
+
+    }
+
+    private fun tellUserThatProductNotFound() {
+        MaterialDialog(requireContext()).show {
+            title(R.string.food_check)
+            message(R.string.product_not_found)
+            positiveButton(R.string.ok) {
+                it.dismiss()
+            }
+        }
+    }
+
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         val result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data)
         if (result != null) {
@@ -130,7 +199,8 @@ class ProductListFragment : Fragment() {
                 Toast.makeText(requireContext(), "Scanning is cancelled", Toast.LENGTH_LONG).show()
             } else {
                 val barcode: String = result.contents
-                resolveScannedProductReference(barcode)
+                handleScanResult(barcode)
+
             }
         } else {
             Toast.makeText(requireContext(), "No result", Toast.LENGTH_LONG)
@@ -138,4 +208,6 @@ class ProductListFragment : Fragment() {
             super.onActivityResult(requestCode, resultCode, data)
         }
     }
+
+
 }

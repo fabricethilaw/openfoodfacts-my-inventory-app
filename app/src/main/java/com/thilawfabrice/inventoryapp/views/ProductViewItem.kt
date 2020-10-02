@@ -10,7 +10,7 @@ class ProductViewItem(
 )
 
 fun Product.asViewItem(): ProductViewItem {
-    return ProductViewItem(reference, name, expireDate, picture)
+    return ProductViewItem(reference, name, expiryDate, picture)
 }
 
 fun List<Product>.asViewItems(): List<ProductViewItem> {

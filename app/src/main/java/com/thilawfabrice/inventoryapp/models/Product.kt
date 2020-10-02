@@ -2,11 +2,21 @@ package com.thilawfabrice.inventoryapp.models
 
 import androidx.lifecycle.LiveData
 import androidx.room.*
+import com.thilawfabrice.inventoryapp.repository.api.FoodDetails
+import com.thilawfabrice.inventoryapp.repository.api.OpenFoodFact
 
 @Entity(tableName = "products")
 data class Product(
-    @PrimaryKey val reference: String, val name: String, val expireDate: String, val picture: String
+    @PrimaryKey val reference: String, val name: String, val expiryDate: String, val picture: String
 )
+
+fun OpenFoodFact.toProductDetails(): FoodDetails? =
+    if (product?.code != null &&
+        product.imageUrl != null &&
+        product.name != null
+    ) {
+        product
+    } else null
 
 /**
  * Interface for database access for Product  related operations.

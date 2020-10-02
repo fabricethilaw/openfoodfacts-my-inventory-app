@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.thilawfabrice.inventoryapp.models.Product
 import com.thilawfabrice.inventoryapp.repository.Repository
+import com.thilawfabrice.inventoryapp.repository.api.FoodDetails
 import com.thilawfabrice.inventoryapp.views.ProductViewItem
 import com.thilawfabrice.inventoryapp.views.asViewItems
 import kotlinx.coroutines.Dispatchers
@@ -18,8 +19,7 @@ class ProductViewModel(
     companion object {
         /**
          * Factory for creating [ProductViewModel]
-         *
-         * @param arg the repository to pass to [ProductViewModel]
+         * Pass repository to [ProductViewModel]
          */
         val FACTORY = singleArgViewModelFactory(::ProductViewModel)
     }
@@ -35,6 +35,11 @@ class ProductViewModel(
         return result
     }
 
+
+    suspend fun checkReferenceOnline(code: String): LiveData<FoodDetails?> {
+        return repository.resolveProductDetails(code)
+    }
+
     // todo()
     fun saveProduct(product: Product) {
         viewModelScope.launch(Dispatchers.IO)
@@ -43,8 +48,5 @@ class ProductViewModel(
         }
     }
 
-    // todo()
-    fun checkReference(reference: String) {
-    }
 
 }
