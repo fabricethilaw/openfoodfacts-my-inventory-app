@@ -18,6 +18,8 @@ package com.thilawfabrice.inventoryapp
 
 import android.app.Activity
 import android.app.Application
+import android.content.Context
+import com.afollestad.materialdialogs.MaterialDialog
 import com.thilawfabrice.inventoryapp.repository.LocalDatabase
 import com.thilawfabrice.inventoryapp.repository.Repository
 import org.joda.time.DateTime
@@ -36,23 +38,52 @@ class App : Application() {
 
 }
 
+/**
+ *
+ */
 fun Activity.getApp(): App = this.applicationContext as App
 
+/**
+ *
+ */
 fun Calendar.formatDate(): String {
     val fm = SimpleDateFormat("MMMM dd, yyyy", Locale.US)
     return fm.format(this.time)
 }
 
+/**
+ *
+ */
 fun String.formatToDate(): DateTime? {
     val fm = DateTimeFormat.forPattern("MMMM dd, yyyy")
     return fm.parseDateTime(this)
 }
 
+/**
+ *
+ */
 fun DateTime.takeOldest(otherDateTime: DateTime): DateTime {
     return if (isBefore(otherDateTime.toInstant())) {
         this
     } else otherDateTime
 }
 
+/**
+ *
+ */
 fun DateTime.formatDate() = toCalendar(Locale.US).formatDate()
+
+/**
+ *
+ *
+ */
+fun showDialogBox(context: Context, titleRes: Int, message: String) {
+    MaterialDialog(context).show {
+        title(titleRes)
+        message(text = message)
+        positiveButton(R.string.ok) {
+            it.dismiss()
+        }
+    }
+}
 

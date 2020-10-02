@@ -28,8 +28,11 @@ import com.bumptech.glide.Glide
 import com.thilawfabrice.inventoryapp.R
 import com.thilawfabrice.inventoryapp.views.ProductViewItem
 
-class AdapterItemList(private val context: Context) :
-    RecyclerView.Adapter<AdapterItemList.ItemViewHolder>() {
+/**
+ *
+ */
+class AdapterProductList(private val context: Context) :
+    RecyclerView.Adapter<AdapterProductList.ItemViewHolder>() {
 
     private val dataSet = mutableListOf<ProductViewItem>()
 
