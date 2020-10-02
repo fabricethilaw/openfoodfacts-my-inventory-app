@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2020 Fabrice Thilaw (@thilawfab)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * */
+
 package com.thilawfabrice.inventoryapp.views.fragments
 
 import android.content.Intent
@@ -24,6 +40,7 @@ import com.afollestad.materialdialogs.datetime.dateTimePicker
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.zxing.integration.android.IntentIntegrator
 import com.thilawfabrice.inventoryapp.R
+import com.thilawfabrice.inventoryapp.formatDate
 import com.thilawfabrice.inventoryapp.getApp
 import com.thilawfabrice.inventoryapp.viewmodels.ProductViewModel
 import com.thilawfabrice.inventoryapp.viewmodels.ProductViewModel.Companion.FACTORY
@@ -44,7 +61,7 @@ class ProductListFragment : Fragment() {
     private val vmFactory: ViewModelProvider.NewInstanceFactory by lazy {
         FACTORY(
             requireActivity().getApp().repository,
-            "" // replace this value to provide the model with any relevant data you wish at initialization step
+            this
         )
     }
     private val viewModel: ProductViewModel by viewModels { vmFactory }
@@ -60,10 +77,12 @@ class ProductListFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         val (listView, emptyListTextView) = initializeUI(view)
-
-        observeAvailableProductList(listView, emptyListTextView)
+        displayProductList(
+            listView = listView,
+            adapterView = adapterView,
+            emptyListTextView = emptyListTextView
+        )
 
     }
 
@@ -72,52 +91,49 @@ class ProductListFragment : Fragment() {
         val emptyListTextView = view.findViewById<TextView>(R.id.emptyList)
         listView.adapter = adapterView
 
-        view.findViewById<FloatingActionButton>(R.id.btnAddProduct).setOnClickListener {
-            showScanner()
-        }
+        view.findViewById<FloatingActionButton>(R.id.btnAddProduct)
+            .setOnClickListener {
+                showScanner()
+            }
         return Pair(listView, emptyListTextView)
     }
 
 
-    private fun observeAvailableProductList(
+    private fun displayProductList(
         listView: RecyclerView,
-        emptyListTextView: TextView
+        adapterView: AdapterItemList, emptyListTextView: TextView
+    ) {
+        observeAvailableProductList { data ->
+
+            // Update UI on main thread
+            Handler(Looper.getMainLooper()).post {
+                if (data.isEmpty()) {
+                    listView.visibility = GONE
+                    emptyListTextView.visibility = VISIBLE
+                } else {
+                    listView.visibility = VISIBLE
+                    emptyListTextView.visibility = GONE
+                }
+
+                adapterView.update(data.toSet())
+            }
+        }
+    }
+
+
+    private fun observeAvailableProductList(
+        callback: (List<ProductViewItem>) -> Unit
     ) {
         viewLifecycleOwner.lifecycleScope.launch {
 
             viewModel.getProductList().run {
 
                 if (this.hasActiveObservers().not()) {
-                    observeForever {
-                        displayProductList(
-                            it.toSet(),
-                            listView,
-                            adapterView,
-                            emptyListTextView
-                        )
+                    observeForever { items ->
+                        callback(items)
                     }
                 }
             }
-        }
-    }
-
-    private fun displayProductList(
-        data: Set<ProductViewItem>,
-        listView: RecyclerView,
-        adapterView: AdapterItemList,
-        emptyListTextView: TextView
-    ) {
-        // Update UI on main thread
-        Handler(Looper.getMainLooper()).post {
-            if (data.isEmpty()) {
-                listView.visibility = GONE
-                emptyListTextView.visibility = VISIBLE
-            } else {
-                listView.visibility = VISIBLE
-                emptyListTextView.visibility = GONE
-            }
-
-            adapterView.update(data)
         }
     }
 
@@ -130,19 +146,26 @@ class ProductListFragment : Fragment() {
 
     private fun checkScannedBarcodeOnline(barcode: String) {
         val loaderAnimation = MaterialDialog(requireContext()).show {
-            title(R.string.food_check)
+            title(R.string.checking)
             cancelable(false)
             customView(R.layout.loader_dialog)
         }
+
         // Non blocking task on main thread
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
             try {
-                viewModel.checkReferenceOnline(barcode).observeForever { scanResult ->
+                // 1- Check barcode validity
+                viewModel.checkReferenceOnline(barcode).observeForever { details ->
                     // stop animation
                     loaderAnimation.dismiss()
                     // continue workflow
-                    if (scanResult != null) {
-                        letUserSetExpiryDate()
+                    if (details != null) {
+                        // 2- Provide expiry date
+                        letUserSetExpiryDate(details.name) { date ->
+                            // 3- Save new product or update existing one
+                            // users sees updated automatically
+                            viewModel.saveProduct(details, newExpiryDate = date)
+                        }
                     } else tellUserThatProductNotFound()
                 }
             } catch (e: Exception) {
@@ -155,7 +178,7 @@ class ProductListFragment : Fragment() {
 
     private fun tellUserThereWasAnError() {
         MaterialDialog(requireContext()).show {
-            title(R.string.food_check)
+            title(R.string.checking)
             message(R.string.unable_to_check_code)
             positiveButton(R.string.ok) {
                 it.dismiss()
@@ -164,20 +187,21 @@ class ProductListFragment : Fragment() {
     }
 
 
-    private fun letUserSetExpiryDate() {
-
+    private fun letUserSetExpiryDate(productName: String, callback: (string: String) -> Unit) {
         MaterialDialog(requireContext()).show {
-            title(R.string.product_expiry_date)
-            dateTimePicker(requireFutureDateTime = true) { _, dateTime ->
+
+            title(text = getString(R.string.product_expiry_date, productName))
+            dateTimePicker(requireFutureDateTime = true) { _, date ->
                 // Use dateTime (Calendar)
+                callback(date.formatDate())
+
             }
         }
-
     }
 
     private fun tellUserThatProductNotFound() {
         MaterialDialog(requireContext()).show {
-            title(R.string.food_check)
+            title(R.string.checking)
             message(R.string.product_not_found)
             positiveButton(R.string.ok) {
                 it.dismiss()
@@ -194,7 +218,6 @@ class ProductListFragment : Fragment() {
             } else {
                 val barcode: String = result.contents
                 checkScannedBarcodeOnline(barcode)
-
             }
         } else {
             Toast.makeText(requireContext(), "No result", Toast.LENGTH_LONG)

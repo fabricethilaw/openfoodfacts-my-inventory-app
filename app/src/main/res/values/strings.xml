@@ -3,9 +3,10 @@
     <string name="no_product">No product in store</string>
     <string name="product_list_fragment_label">product_list_fragment_label</string>
     <string name="add_product_fragment_label">add_product_fragment_label</string>
-    <string name="food_check">Food check</string>
+    <string name="checking">Barcode checking</string>
     <string name="product_not_found">Product not found.</string>
-    <string name="product_expiry_date">Product expiry date</string>
-    <string name="unable_to_check_code">Unable to verify the product right. Try later.</string>
+    <string name="product_expiry_date">Set expiry date to %s</string>
+    <string name="unable_to_check_code">Unable to complete operation. Check your Internet connection and try again.</string>
     <string name="ok">Ok</string>
+    <string name="expire">"Exp : %s"</string>
 </resources>

@@ -1,20 +1,36 @@
+/*
+ * Copyright (C) 2020 Fabrice Thilaw (@thilawfab)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.*/
+
 package com.thilawfabrice.inventoryapp.viewmodels
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.*
+import com.thilawfabrice.inventoryapp.formatDate
+import com.thilawfabrice.inventoryapp.formatToDate
 import com.thilawfabrice.inventoryapp.models.Product
 import com.thilawfabrice.inventoryapp.repository.Repository
 import com.thilawfabrice.inventoryapp.repository.api.FoodDetails
+import com.thilawfabrice.inventoryapp.takeOldest
 import com.thilawfabrice.inventoryapp.views.ProductViewItem
 import com.thilawfabrice.inventoryapp.views.asViewItems
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+
 class ProductViewModel(
     private val repository: Repository,
-    val otherProperty: Any
+    private val lifecycleOwner: LifecycleOwner
 ) : ViewModel() {
     companion object {
         /**
@@ -27,9 +43,9 @@ class ProductViewModel(
     suspend fun getProductList(): LiveData<List<ProductViewItem>> {
         val rawData = repository.loadSavedProducts()
         val result = MutableLiveData<List<ProductViewItem>>()
-        with(rawData.hasActiveObservers().not()) {
-            rawData.observeForever {
-                result.postValue(it.asViewItems())
+        if (rawData.hasActiveObservers().not()) {
+            rawData.observe(owner = lifecycleOwner) { data ->
+                result.postValue(data.asViewItems())
             }
         }
         return result
@@ -40,13 +56,66 @@ class ProductViewModel(
         return repository.resolveProductDetails(code)
     }
 
-    // todo()
-    fun saveProduct(product: Product) {
-        viewModelScope.launch(Dispatchers.IO)
+    fun saveProduct(validData: FoodDetails, newExpiryDate: String) {
+        viewModelScope.launch(Dispatchers.Main)
         {
-            repository.saveProduct(product)
+            with(validData) {
+                repository.findProduct(validData.code!!).also { lookForMatchingProduct ->
+
+                    lookForMatchingProduct.observe(owner = lifecycleOwner) { matches ->
+                        // Save new product if no match
+                        if (matches.isEmpty()) {
+
+                            viewModelScope.launch(Dispatchers.Main) {
+                                val product = Product(
+                                    reference = code!!,
+                                    name = name,
+                                    picture = imageUrl!!,
+                                    expiryDate = newExpiryDate
+                                )
+                                // stop observing to prevent looping
+                                lookForMatchingProduct.removeObservers(lifecycleOwner)
+                                repository.saveProduct(product)
+                            }
+
+                        } else {
+                            // otherwise update existing product
+                            // stop observing to prevent looping
+                            lookForMatchingProduct.removeObservers(lifecycleOwner)
+
+                            updateProduct(
+                                newExpiryDate = newExpiryDate,
+                                previousProduct = matches.first()
+                            )
+                        }
+                    }
+                }
+
+            }
+
         }
     }
 
 
+    private fun updateProduct(
+        previousProduct: Product,
+        newExpiryDate: String
+    ) {
+        //otherwise  only update the old one
+
+        with(previousProduct) {
+            // make a  copy of the old product with the closest date
+            val oldDate = newExpiryDate.formatToDate()
+            val newDate = expiryDate.formatToDate()
+
+            if (oldDate != null && newDate != null) {
+
+                val update = copy(expiryDate = oldDate.takeOldest(newDate).formatDate())
+                // then update older record
+                viewModelScope.launch(Dispatchers.Main) {
+                    repository.saveProduct(update)
+                }
+            }
+        }
+    }
 }

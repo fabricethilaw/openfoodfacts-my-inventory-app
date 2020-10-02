@@ -11,18 +11,6 @@
         android:label="@string/product_list_fragment_label"
         tools:layout="@layout/fragment_product_list">
 
-        <action
-            android:id="@+id/action_ProductListFragment_to_AddProductFragment"
-            app:destination="@id/AddProductFragment" />
     </fragment>
-    <fragment
-        android:id="@+id/AddProductFragment"
-        android:name="com.thilawfabrice.inventoryapp.views.fragments.AddProductFragment"
-        android:label="@string/add_product_fragment_label"
-        tools:layout="@layout/fragment_add_product">
 
-        <action
-            android:id="@+id/action_AddProductFragment_to_ProductListFragment"
-            app:destination="@id/ProductListFragment" />
-    </fragment>
 </navigation>
