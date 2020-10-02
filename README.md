@@ -7,7 +7,7 @@
 1. Display food products available in store with their GITN barcode references & details
 2. User may scan barcode to add a new product and provide expiry date.
 3. Connect to https://world.openfoodfacts.org/data to get trusted product refrences
-4. Only save and update trusted references. Date is saved in a localstorage to survive app restart
+4. Only save and update trusted references. Data is saved in a localstorage to survive app restart
 
 ### Bugs and feature requests
 Have a bug or a feature request? Please search for existing and closed issues. If your problem or idea is not addressed yet, please open a new issue. 
