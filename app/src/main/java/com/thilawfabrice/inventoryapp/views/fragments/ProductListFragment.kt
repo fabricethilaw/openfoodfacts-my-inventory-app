@@ -25,7 +25,6 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.zxing.integration.android.IntentIntegrator
 import com.thilawfabrice.inventoryapp.R
 import com.thilawfabrice.inventoryapp.getApp
-import com.thilawfabrice.inventoryapp.repository.api.FoodDetails
 import com.thilawfabrice.inventoryapp.viewmodels.ProductViewModel
 import com.thilawfabrice.inventoryapp.viewmodels.ProductViewModel.Companion.FACTORY
 import com.thilawfabrice.inventoryapp.views.BarcodeScanner
@@ -129,45 +128,41 @@ class ProductListFragment : Fragment() {
         }
     }
 
-    private fun handleScanResult(barcode: String) {
+    private fun checkScannedBarcodeOnline(barcode: String) {
         val loaderAnimation = MaterialDialog(requireContext()).show {
             title(R.string.food_check)
             cancelable(false)
             customView(R.layout.loader_dialog)
         }
-
-        checkScannedBarcodeOnline(barcode) { scanResult ->
-            // hide loader
-            Handler(Looper.getMainLooper()).post {
-                loaderAnimation.dismiss()
-            }
-
-            if (scanResult != null) {
-                letUserSetExpiryDate()
-            } else {
-                tellUserThatProductNotFound()
-            }
-        }
-    }
-
-
-    private fun checkScannedBarcodeOnline(barcode: String, resultObserver: (FoodDetails?) -> Unit) {
-
+        // Non blocking task on main thread
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
             try {
-                viewModel.checkReferenceOnline(barcode).observeForever(resultObserver)
-            } catch (e: Exception) {
-
-                MaterialDialog(requireContext()).show {
-                    title(R.string.food_check)
-                    message(R.string.unable_to_check_code)
-                    positiveButton(R.string.ok) {
-                        it.dismiss()
-                    }
+                viewModel.checkReferenceOnline(barcode).observeForever { scanResult ->
+                    // stop animation
+                    loaderAnimation.dismiss()
+                    // continue workflow
+                    if (scanResult != null) {
+                        letUserSetExpiryDate()
+                    } else tellUserThatProductNotFound()
                 }
+            } catch (e: Exception) {
+                // stop animation
+                loaderAnimation.dismiss()
+                tellUserThereWasAnError()
             }
         }
     }
+
+    private fun tellUserThereWasAnError() {
+        MaterialDialog(requireContext()).show {
+            title(R.string.food_check)
+            message(R.string.unable_to_check_code)
+            positiveButton(R.string.ok) {
+                it.dismiss()
+            }
+        }
+    }
+
 
     private fun letUserSetExpiryDate() {
 
@@ -175,7 +170,6 @@ class ProductListFragment : Fragment() {
             title(R.string.product_expiry_date)
             dateTimePicker(requireFutureDateTime = true) { _, dateTime ->
                 // Use dateTime (Calendar)
-
             }
         }
 
@@ -199,7 +193,7 @@ class ProductListFragment : Fragment() {
                 Toast.makeText(requireContext(), "Scanning is cancelled", Toast.LENGTH_LONG).show()
             } else {
                 val barcode: String = result.contents
-                handleScanResult(barcode)
+                checkScannedBarcodeOnline(barcode)
 
             }
         } else {
