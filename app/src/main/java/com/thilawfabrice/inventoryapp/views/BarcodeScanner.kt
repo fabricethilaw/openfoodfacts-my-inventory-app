@@ -20,12 +20,7 @@ import androidx.fragment.app.Fragment
 import com.google.zxing.integration.android.IntentIntegrator
 
 class BarcodeScanner(fragment: Fragment) {
-    // Ask for runtime perm
-    // scan barcode
-    // resolve code
-    // check code reference online
-    // if reference is valide save product details
-    // display product list
+
     private val integrator by lazy {
         IntentIntegrator.forSupportFragment(fragment)
     }

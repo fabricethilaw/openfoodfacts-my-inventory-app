@@ -30,19 +30,19 @@ import com.thilawfabrice.inventoryapp.repository.api.OpenFoodFact
 
 /**
  *  Represents the unique source of true data
- *  the UI will interact with for retrieving and inserting data
+ *  the ViewModel will interact with for retrieving and inserting data
  */
 class Repository(private val localDB: LocalDatabase) {
 
     private val apiController = ApiController()
-    suspend fun loadSavedProducts() = localDB.productsDao().getAllProducts()
-    suspend fun saveProduct(product: Product) {
+    fun loadSavedProducts() = localDB.productsDao().getAllProducts()
+    suspend fun save(product: Product) {
         localDB.productsDao().insertProducts(setOf(product))
 
     }
 
-    suspend fun resolveProductDetails(reference: String): LiveData<FoodDetails?> {
-        val rawResponse = apiController.api.getProductDetails(reference)
+    suspend fun resolveProductDetails(code: String): LiveData<FoodDetails?> {
+        val rawResponse = apiController.api.getProductDetails(code)
         val liveData = MutableLiveData<FoodDetails?>()
         when (val apiResponse = ApiResponse.create(rawResponse)) {
             is ApiErrorResponse<OpenFoodFact> -> {
@@ -62,6 +62,6 @@ class Repository(private val localDB: LocalDatabase) {
         return liveData
     }
 
-    suspend fun findProduct(code: String) = localDB.productsDao().findProducts(code)
+    fun findProduct(code: String) = localDB.productsDao().findProducts(code)
 
 }

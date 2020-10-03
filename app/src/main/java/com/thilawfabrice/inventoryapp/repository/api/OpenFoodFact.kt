@@ -18,6 +18,10 @@ package com.thilawfabrice.inventoryapp.repository.api
 
 import com.google.gson.annotations.SerializedName
 
+/**
+ * https://world.openfoodfacts.org/data API model is actually
+ * very larger I  kept only the relevant fields for the project
+ */
 data class OpenFoodFact(
 
 	@field:SerializedName("product")

@@ -60,9 +60,9 @@ class ProductViewModel(
         viewModelScope.launch(Dispatchers.Main)
         {
             with(validData) {
-                repository.findProduct(validData.code!!).also { lookForMatchingProduct ->
+                repository.findProduct(validData.code!!).also { lookForAlreadySavedProduct ->
 
-                    lookForMatchingProduct.observe(owner = lifecycleOwner) { matches ->
+                    lookForAlreadySavedProduct.observe(owner = lifecycleOwner) { matches ->
                         // Save new product if no match
                         if (matches.isEmpty()) {
 
@@ -74,16 +74,16 @@ class ProductViewModel(
                                     expiryDate = newExpiryDate
                                 )
                                 // stop observing to prevent looping
-                                lookForMatchingProduct.removeObservers(lifecycleOwner)
-                                repository.saveProduct(product)
+                                lookForAlreadySavedProduct.removeObservers(lifecycleOwner)
+                                repository.save(product)
                             }
 
                         } else {
                             // otherwise update existing product
                             // stop observing to prevent looping
-                            lookForMatchingProduct.removeObservers(lifecycleOwner)
+                            lookForAlreadySavedProduct.removeObservers(lifecycleOwner)
 
-                            updateProduct(
+                            update(
                                 newExpiryDate = newExpiryDate,
                                 previousProduct = matches.first()
                             )
@@ -97,7 +97,7 @@ class ProductViewModel(
     }
 
 
-    private fun updateProduct(
+    private fun update(
         previousProduct: Product,
         newExpiryDate: String
     ) {
@@ -105,15 +105,15 @@ class ProductViewModel(
 
         with(previousProduct) {
             // make a  copy of the old product with the closest date
-            val oldDate = newExpiryDate.formatToDate()
-            val newDate = expiryDate.formatToDate()
+            val newDate = newExpiryDate.formatToDate()
+            val oldDate = expiryDate.formatToDate()
 
             if (oldDate != null && newDate != null) {
 
                 val update = copy(expiryDate = oldDate.takeOldest(newDate).formatDate())
                 // then update older record
                 viewModelScope.launch(Dispatchers.Main) {
-                    repository.saveProduct(update)
+                    repository.save(update)
                 }
             }
         }
